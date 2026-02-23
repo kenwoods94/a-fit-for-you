@@ -8,7 +8,7 @@
     :root { font-family: -apple-system, system-ui, Segoe UI, Roboto, Arial, sans-serif; line-height: 1.35; }
     body { margin: 0; background: #f6f7fb; color: #111; }
     .wrap { max-width: 860px; margin: 0 auto; padding: 28px 16px 60px; }
-    .card { background: white; border-radius: 16px; box-shadow: 0 6px 20px rgba(0,0,0,.07); padding: 18px 18px; margin-bottom: 14px; }
+    .card { background: white; border-radius: 16px; box-shadow: 0 6px 20px rgba(0,0,0,.07); padding: 18px; margin-bottom: 14px; }
     h1 { font-size: 22px; margin: 0 0 8px; }
     p { margin: 8px 0; color: #333; }
     .muted { color: #555; font-size: 13px; }
@@ -17,14 +17,14 @@
     .q { margin-top: 12px; }
     .q h2 { font-size: 16px; margin: 0 0 10px; }
     .opts { display: grid; gap: 8px; }
-    label.opt { display: flex; gap: 10px; align-items: flex-start; padding: 10px 10px; border: 1px solid #e6e7ef; border-radius: 12px; cursor: pointer; }
+    label.opt { display: flex; gap: 10px; align-items: flex-start; padding: 10px; border: 1px solid #e6e7ef; border-radius: 12px; cursor: pointer; }
     label.opt:hover { border-color: #cfd2ff; }
     input[type="radio"] { margin-top: 2px; }
-    input[type="text"], textarea {
+    textarea {
       width: 100%; box-sizing: border-box; padding: 10px 12px;
       border: 1px solid #e6e7ef; border-radius: 12px; font-size: 14px;
+      min-height: 88px; resize: vertical;
     }
-    textarea { min-height: 88px; resize: vertical; }
     .row { display: flex; gap: 10px; flex-wrap: wrap; }
     .btn {
       border: 0; border-radius: 12px; padding: 10px 14px; cursor: pointer;
@@ -44,7 +44,6 @@
     .small { font-size: 12px; color: #555; }
   </style>
 </head>
-
 <body>
   <div class="wrap">
     <div class="card">
@@ -61,13 +60,11 @@
     <div class="card" id="resultCard" style="display:none;"></div>
 
     <div class="footer small">
-      Tip: You can run this locally. No data is sent anywhere unless you add that later.
+      Tip: This page can submit responses to your Google Sheet when you click Submit.
     </div>
   </div>
 
 <script>
-  // Simple scoring model (not promises, just "fit signals").
-  // Green: strong alignment, Yellow: maybe with adjustments, Red: likely not now.
   const questions = [
     {
       id: "why",
@@ -85,8 +82,7 @@
       id: "whyNow",
       title: "2) Why now? What’s prompting you to look at something?",
       type: "text",
-      placeholder: "A sentence or two is fine.",
-      score: 0
+      placeholder: "A sentence or two is fine."
     },
     {
       id: "hours",
@@ -138,7 +134,7 @@
       options: [
         { label: "I like systems", score: 3 },
         { label: "If it’s straightforward, yes", score: 2 },
-        { label: "I’m not a “system” person", score: 0 }
+        { label: "I’m not a system person", score: 0 }
       ]
     },
     {
@@ -175,7 +171,8 @@
   ];
 
   let i = 0;
-  const answers = {}; // {id: {value, score}}
+  const answers = {};
+
   const bar = document.getElementById("bar");
   const progressText = document.getElementById("progressText");
   const questionCard = document.getElementById("questionCard");
@@ -186,32 +183,32 @@
   function render() {
     const total = questions.length;
     const q = questions[i];
+
     bar.style.width = pct(i, total) + "%";
     progressText.textContent = `Question ${i+1} of ${total}`;
 
     const saved = answers[q.id]?.value ?? "";
-
     let html = `<h2>${q.title}</h2>`;
 
     if (q.type === "radio") {
       html += `<div class="opts" role="radiogroup" aria-label="${q.title}">`;
       q.options.forEach((opt) => {
-        const checked = (saved === opt.label) ? "checked" : "";
+        const checked = saved === opt.label ? "checked" : "";
         html += `
           <label class="opt">
-            <input type="radio" name="${q.id}" value="${opt.label}" data-score="${opt.score}" ${checked}/>
-            <div>${opt.label}</div>
+            <input type="radio" name="${q.id}" value="${escapeAttr(opt.label)}" data-score="${opt.score}" ${checked}/>
+            <div>${escapeHtml(opt.label)}</div>
           </label>
         `;
       });
       html += `</div>`;
-    } else if (q.type === "text") {
-      html += `<textarea id="textInput" placeholder="${q.placeholder}">${saved}</textarea>`;
+    } else {
+      html += `<textarea id="textInput" placeholder="${escapeAttr(q.placeholder || "")}">${escapeHtml(saved)}</textarea>`;
     }
 
     html += `
       <div class="row" style="margin-top:14px;">
-        <button class="btn secondary" id="backBtn" ${i===0 ? "disabled":""}>Back</button>
+        <button class="btn secondary" id="backBtn" ${i===0 ? "disabled" : ""}>Back</button>
         <button class="btn" id="nextBtn">${i === total-1 ? "See Results" : "Next"}</button>
         <button class="btn secondary" id="resetBtn" style="margin-left:auto;">Reset</button>
       </div>
@@ -222,13 +219,21 @@
 
     questionCard.innerHTML = html;
 
-    document.getElementById("backBtn").onclick = () => { if (i>0) { i--; render(); } };
-    document.getElementById("resetBtn").onclick = () => { i = 0; for (const k in answers) delete answers[k]; hideResults(); render(); };
-
+    document.getElementById("backBtn").onclick = () => { if (i > 0) { i--; render(); } };
+    document.getElementById("resetBtn").onclick = () => {
+      i = 0;
+      for (const k in answers) delete answers[k];
+      hideResults();
+      render();
+    };
     document.getElementById("nextBtn").onclick = () => {
       if (!saveAnswer(q)) return;
-      if (i < total-1) { i++; render(); }
-      else showResults();
+      if (i < total - 1) {
+        i++;
+        render();
+      } else {
+        showResults();
+      }
     };
   }
 
@@ -239,17 +244,23 @@
       answers[q.id] = { value: sel.value, score: Number(sel.dataset.score || 0) };
       return true;
     }
-    if (q.type === "text") {
-      const txt = (document.getElementById("textInput").value || "").trim();
-      if (!txt) { alert("Please type a short answer to continue."); return false; }
-      answers[q.id] = { value: txt, score: 0 };
-      return true;
-    }
-    return false;
+
+    const txt = (document.getElementById("textInput").value || "").trim();
+    if (!txt) { alert("Please type a short answer to continue."); return false; }
+    answers[q.id] = { value: txt, score: 0 };
+    return true;
   }
 
   function totalScore() {
     return Object.values(answers).reduce((sum, a) => sum + (a.score || 0), 0);
+  }
+
+  function buildPayload() {
+    return {
+      submittedAt: new Date().toISOString(),
+      score: totalScore(),
+      answers: Object.fromEntries(Object.entries(answers).map(([k, v]) => [k, v.value]))
+    };
   }
 
   function showResults() {
@@ -289,7 +300,7 @@
         <h2 style="margin:0;">${headline}</h2>
       </div>
 
-      <p><b>What this means:</b> ${nextStep}</p>
+      <p><b>What this means:</b> ${escapeHtml(nextStep)}</p>
 
       <div class="kvs">
         <div class="kv"><b>Your “why now”</b><div>${escapeHtml(whyNow)}</div></div>
@@ -298,11 +309,11 @@
       </div>
 
       <div class="row" style="margin-top:14px;">
-  <button class="btn secondary" id="editBtn">Edit Answers</button>
-  <button class="btn secondary" id="downloadBtn">Download (JSON)</button>
-  <button class="btn" id="submitBtn">Submit</button>
-</div>
-<p class="muted" id="submitStatus" style="margin-top:10px;"></p>
+        <button class="btn secondary" id="editBtn">Edit Answers</button>
+        <button class="btn secondary" id="downloadBtn">Download (JSON)</button>
+        <button class="btn" id="submitBtn">Submit</button>
+      </div>
+      <p class="muted" id="submitStatus" style="margin-top:10px;"></p>
 
       <p class="muted" style="margin-top:10px;">
         Reminder: Results are directional and based only on your answers—this does not guarantee outcomes.
@@ -317,71 +328,17 @@
     };
 
     document.getElementById("downloadBtn").onclick = downloadJSON;
-    document.getElementById("submitBtn").onclick = submitToSheet;  }
+    document.getElementById("submitBtn").onclick = submitToSheet;
+  }
 
   function hideResults() {
     questionCard.style.display = "block";
     resultCard.style.display = "none";
   }
-async function submitToSheet() {
-  const payload = {
-    submittedAt: new Date().toISOString(),
-    score: totalScore(),
-    answers: Object.fromEntries(Object.entries(answers).map(([k,v]) => [k, v.value]))
-  };
 
-  // Paste your Apps Script Web App URL (ends with /exec)
-  const ENDPOINT = "https://script.google.com/macros/s/AKfycbw7Pru3IIjn-DPPTxHkYrgGwvacJKWK0fWDmfmBYoquyae33onfHwPYmoZhM-xoslrfcA/exec";
-
-  const statusEl = document.getElementById("submitStatus");
-  statusEl.textContent = "Submitting...";
-
-  try {
-    await fetch(ENDPOINT, {
-      method: "POST",
-      mode: "no-cors",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-
-    statusEl.textContent = "Submitted. Thank you!";
-  } catch (err) {
-    statusEl.textContent = "Submission failed. Please try again.";
-    console.error(err);
-  }
-  async function submitToSheet() {
-  const payload = {
-    submittedAt: new Date().toISOString(),
-    score: totalScore(),
-    answers: Object.fromEntries(Object.entries(answers).map(([k,v]) => [k, v.value]))
-  };
-
-  // IMPORTANT: paste your Apps Script Web App URL here
-  const ENDPOINT = "https://script.google.com/macros/s/AKfycbw7Pru3IIjn-DPPTxHkYrgGwvacJKWK0fWDmfmBYoquyae33onfHwPYmoZhM-xoslrfcA/exec";
-
-  const statusEl = document.getElementById("submitStatus");
-  statusEl.textContent = "Submitting...";
-
-  try {
-    await fetch(ENDPOINT, {
-      method: "POST",
-      mode: "no-cors",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-
-    statusEl.textContent = "Submitted. Thank you!";
-  } catch (err) {
-    statusEl.textContent = "Submission failed. Please try again.";
-    console.error(err);
-  }
-}}  function downloadJSON() {
-    const payload = {
-      submittedAt: new Date().toISOString(),
-      score: totalScore(),
-      answers: Object.fromEntries(Object.entries(answers).map(([k,v]) => [k, v.value]))
-    };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], {type: "application/json"});
+  function downloadJSON() {
+    const payload = buildPayload();
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = "questionnaire-responses.json";
@@ -391,16 +348,51 @@ async function submitToSheet() {
     URL.revokeObjectURL(a.href);
   }
 
-  function escapeHtml(str){
+  async function submitToSheet() {
+    const payload = buildPayload();
+
+    // PASTE YOUR APPS SCRIPT WEB APP URL HERE (must end in /exec)
+    const ENDPOINT = "https://script.google.com/macros/s/ABC123.../exec";
+    
+    const statusEl = document.getElementById("submitStatus");
+    statusEl.textContent = "Submitting...";
+
+    if (!ENDPOINT || ENDPOINT.includes("PASTE_YOUR_WEB_APP_URL_HERE")) {
+      statusEl.textContent = "Please add your Apps Script /exec URL in the code first.";
+      return;
+    }
+
+    try {
+      await fetch(ENDPOINT, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      statusEl.textContent = "Submitted. Check your Google Sheet in a few seconds.";
+    } catch (err) {
+      statusEl.textContent = "Submission failed. Please try again.";
+      console.error(err);
+    }
+  }
+
+  function escapeHtml(str) {
     return String(str)
-      .replaceAll("&","&amp;")
-      .replaceAll("<","&lt;")
-      .replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;")
-      .replaceAll("'","&#039;");
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  function escapeAttr(str) {
+    return String(str).replaceAll('"', "&quot;");
   }
 
   render();
 </script>
+</body>
+</html>
 </body>
 </html>
