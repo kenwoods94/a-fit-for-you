@@ -349,7 +349,33 @@ async function submitToSheet() {
     statusEl.textContent = "Submission failed. Please try again.";
     console.error(err);
   }
-}  function downloadJSON() {
+  async function submitToSheet() {
+  const payload = {
+    submittedAt: new Date().toISOString(),
+    score: totalScore(),
+    answers: Object.fromEntries(Object.entries(answers).map(([k,v]) => [k, v.value]))
+  };
+
+  // IMPORTANT: paste your Apps Script Web App URL here
+  const ENDPOINT = "https://script.google.com/macros/s/AKfycbw7Pru3IIjn-DPPTxHkYrgGwvacJKWK0fWDmfmBYoquyae33onfHwPYmoZhM-xoslrfcA/exec";
+
+  const statusEl = document.getElementById("submitStatus");
+  statusEl.textContent = "Submitting...";
+
+  try {
+    await fetch(ENDPOINT, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    statusEl.textContent = "Submitted. Thank you!";
+  } catch (err) {
+    statusEl.textContent = "Submission failed. Please try again.";
+    console.error(err);
+  }
+}}  function downloadJSON() {
     const payload = {
       submittedAt: new Date().toISOString(),
       score: totalScore(),
