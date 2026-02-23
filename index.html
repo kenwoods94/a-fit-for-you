@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Business Fit Questionnaire</title>
+  <title>Could This Be a Fit?</title>
   <style>
     :root { font-family: -apple-system, system-ui, Segoe UI, Roboto, Arial, sans-serif; line-height: 1.35; }
     body { margin: 0; background: #f6f7fb; color: #111; }
@@ -49,11 +49,11 @@
     <div class="card">
       <h1>Could this business be a fit?</h1>
       <p class="muted">
-        This is a quick self-check to see whether exploring a business opportunity could fit your goals, time, and preferences.
-        <b>No pressure</b>—the goal is clarity.
+        Would you be open to a few quick questions so I can better understand what you’re looking for
+        and whether this might be worth exploring together?
       </p>
       <div class="bar" aria-label="progress"><div id="bar"></div></div>
-      <p class="muted" id="progressText">Question 1 of 10</p>
+      <p class="muted" id="progressText">Question 1 of 12</p>
     </div>
 
     <div class="card q" id="questionCard"></div>
@@ -65,107 +65,144 @@
   </div>
 
 <script>
+  // Gentle / relational Version A with conditional question #6
   const questions = [
     {
       id: "why",
-      title: "1) What would you want an additional income stream to do for you?",
+      title: "1) If an extra income stream actually helped, what would you want it to do for you?",
       type: "radio",
       options: [
-        { label: "Extra breathing room / margin", score: 2 },
-        { label: "Debt payoff", score: 2 },
-        { label: "Savings / investing", score: 2 },
-        { label: "More flexibility / options", score: 2 },
-        { label: "Just exploring / not sure yet", score: 1 }
+        { label: "Create more breathing room each month", score: 2 },
+        { label: "Help with debt payoff", score: 2 },
+        { label: "Build savings / future options", score: 2 },
+        { label: "Create more flexibility in life", score: 2 },
+        { label: "I’m not totally sure yet—just exploring", score: 1 }
       ]
     },
     {
       id: "whyNow",
-      title: "2) Why now? What’s prompting you to look at something?",
+      title: "2) Why does now feel like a time you’d at least be open to looking at something?",
       type: "text",
-      placeholder: "A sentence or two is fine."
+      placeholder: "A sentence or two is perfect."
     },
     {
       id: "hours",
-      title: "3) Realistically, how many hours per week could you give to building something?",
+      title: "3) Realistically, how much time could you give to something if it felt like a good fit?",
       type: "radio",
       options: [
-        { label: "1–2 hours", score: 0 },
-        { label: "3–5 hours", score: 2 },
-        { label: "6–10 hours", score: 3 },
-        { label: "10+ hours", score: 3 }
+        { label: "Less than 1 hour/week", score: 0 },
+        { label: "1–2 hours/week", score: 1 },
+        { label: "3–5 hours/week", score: 2 },
+        { label: "6–10 hours/week", score: 3 },
+        { label: "I’m not sure yet", score: 1 }
       ]
     },
     {
-      id: "consistency",
-      title: "4) Which describes you best right now?",
+      id: "season",
+      title: "4) Which best describes your current season of life?",
       type: "radio",
       options: [
-        { label: "Busy, but consistent when I commit", score: 3 },
-        { label: "My schedule is chaotic right now", score: 1 },
-        { label: "I have margin and want to use it well", score: 3 }
+        { label: "Very full, but I can be consistent with the right plan", score: 3 },
+        { label: "My schedule is unpredictable right now", score: 1 },
+        { label: "I have some margin and want to use it wisely", score: 3 },
+        { label: "I’m in a transition season and figuring things out", score: 2 }
+      ]
+    },
+    {
+      id: "pastExperience",
+      title: "5) Have you ever tried anything for extra income or a side business before?",
+      type: "radio",
+      options: [
+        { label: "Yes, and I had a good experience", score: 3 },
+        { label: "Yes, but it wasn’t a great fit", score: 2 },
+        { label: "I’ve tried a little, but not much", score: 2 },
+        { label: "No, this would be new for me", score: 2 }
+      ]
+    },
+    {
+      id: "pastExperienceDetail",
+      title: "6) If yes, what did you like—or not like—about it?",
+      type: "text",
+      placeholder: "Totally optional—just helpful context.",
+      conditional: {
+        dependsOn: "pastExperience",
+        showIfIn: [
+          "Yes, and I had a good experience",
+          "Yes, but it wasn’t a great fit",
+          "I’ve tried a little, but not much"
+        ]
+      },
+      optional: true
+    },
+    {
+      id: "goals12mo",
+      title: "7) Looking ahead 12 months, what would you most like to be different?",
+      type: "radio",
+      options: [
+        { label: "More financial margin", score: 3 },
+        { label: "More flexibility with my schedule", score: 3 },
+        { label: "More confidence / momentum", score: 2 },
+        { label: "A clearer long-term plan", score: 2 },
+        { label: "I’m not sure yet, but I know I want change", score: 2 }
       ]
     },
     {
       id: "followThrough",
-      title: "5) When you start something new, what helps you follow through most?",
+      title: "8) When you start something new, what helps you follow through best?",
       type: "radio",
       options: [
-        { label: "A clear plan", score: 2 },
-        { label: "Accountability", score: 2 },
-        { label: "Community", score: 2 },
-        { label: "Quick wins", score: 1 },
-        { label: "Flexibility", score: 1 }
+        { label: "A simple plan", score: 2 },
+        { label: "Encouragement / accountability", score: 2 },
+        { label: "Learning with other people", score: 2 },
+        { label: "Flexibility and room to go at my pace", score: 1 },
+        { label: "Small wins early on", score: 1 }
       ]
     },
     {
-      id: "recommend",
-      title: "6) Do you enjoy recommending things you genuinely like to people you know?",
+      id: "sharingComfort",
+      title: "9) How do you feel about sharing things you genuinely like with people you know?",
       type: "radio",
       options: [
-        { label: "Yes", score: 3 },
-        { label: "Sometimes", score: 2 },
-        { label: "Not really", score: 0 }
+        { label: "I enjoy that naturally", score: 3 },
+        { label: "I’m comfortable when it feels authentic", score: 2 },
+        { label: "I’m open to learning how", score: 2 },
+        { label: "That feels uncomfortable for me right now", score: 0 }
       ]
     },
     {
-      id: "learnSystem",
-      title: "7) How do you feel about learning a simple system and practicing it?",
+      id: "avoidFeel",
+      title: "10) If you were exploring something new, what would you not want it to feel like?",
       type: "radio",
       options: [
-        { label: "I like systems", score: 3 },
-        { label: "If it’s straightforward, yes", score: 2 },
-        { label: "I’m not a system person", score: 0 }
+        { label: "High pressure", score: 1 },
+        { label: "Too sales-y", score: 1 },
+        { label: "Complicated / confusing", score: 2 },
+        { label: "Time-heavy or rigid", score: 1 },
+        { label: "Big upfront cost / inventory", score: 1 },
+        { label: "Doing it alone without support", score: 2 }
       ]
     },
     {
-      id: "inviting",
-      title: "8) How comfortable are you having short conversations to invite someone to take a look?",
+      id: "supportStyle",
+      title: "11) If you were learning something new, what kind of support would help you feel comfortable?",
       type: "radio",
       options: [
-        { label: "Comfortable", score: 3 },
-        { label: "I could learn", score: 2 },
-        { label: "I avoid that kind of thing", score: 0 }
+        { label: "One-on-one guidance", score: 3 },
+        { label: "A simple step-by-step plan", score: 3 },
+        { label: "Encouragement/community", score: 3 },
+        { label: "Time to process and ask questions", score: 2 },
+        { label: "A mix of all of the above", score: 3 }
       ]
     },
     {
-      id: "style",
-      title: "9) How would you prefer to build—online, in-person, or a mix?",
+      id: "readiness",
+      title: "12) Based on where you are right now, which feels most true?",
       type: "radio",
       options: [
-        { label: "Online", score: 2 },
-        { label: "In-person", score: 2 },
-        { label: "A mix of both", score: 3 }
-      ]
-    },
-    {
-      id: "support",
-      title: "10) What kind of support would you want if you explored this?",
-      type: "radio",
-      options: [
-        { label: "Mentorship/coaching", score: 3 },
-        { label: "Community", score: 3 },
-        { label: "Training resources", score: 2 },
-        { label: "All of the above", score: 3 }
+        { label: "I’d be open to taking a closer look", score: 3 },
+        { label: "I’m curious and would want to ask a few questions first", score: 2 },
+        { label: "I’m not sure yet, but I’m glad to learn more", score: 1 },
+        { label: "It’s probably not the right timing for me right now", score: 0 }
       ]
     }
   ];
@@ -178,11 +215,31 @@
   const questionCard = document.getElementById("questionCard");
   const resultCard = document.getElementById("resultCard");
 
-  function pct(n, d){ return Math.round((n/d)*100); }
+  function pct(n, d){ return d ? Math.round((n/d)*100) : 0; }
+
+  function shouldShowQuestion(q) {
+    if (!q.conditional) return true;
+    const dep = q.conditional.dependsOn;
+    const allowed = q.conditional.showIfIn || [];
+    const depAnswer = answers[dep]?.value;
+    return allowed.includes(depAnswer);
+  }
+
+  function visibleQuestions() {
+    return questions.filter(shouldShowQuestion);
+  }
+
+  function clampIndex() {
+    const total = visibleQuestions().length;
+    if (i < 0) i = 0;
+    if (i > Math.max(total - 1, 0)) i = Math.max(total - 1, 0);
+  }
 
   function render() {
-    const total = questions.length;
-    const q = questions[i];
+    const visible = visibleQuestions();
+    clampIndex();
+    const total = visible.length;
+    const q = visible[i];
 
     bar.style.width = pct(i, total) + "%";
     progressText.textContent = `Question ${i+1} of ${total}`;
@@ -191,7 +248,7 @@
     let html = `<h2>${q.title}</h2>`;
 
     if (q.type === "radio") {
-      html += `<div class="opts" role="radiogroup" aria-label="${q.title}">`;
+      html += `<div class="opts" role="radiogroup" aria-label="${escapeAttr(q.title)}">`;
       q.options.forEach((opt) => {
         const checked = saved === opt.label ? "checked" : "";
         html += `
@@ -204,6 +261,9 @@
       html += `</div>`;
     } else {
       html += `<textarea id="textInput" placeholder="${escapeAttr(q.placeholder || "")}">${escapeHtml(saved)}</textarea>`;
+      if (q.optional) {
+        html += `<p class="muted">Optional — you can leave this blank.</p>`;
+      }
     }
 
     html += `
@@ -213,22 +273,41 @@
         <button class="btn secondary" id="resetBtn" style="margin-left:auto;">Reset</button>
       </div>
       <p class="muted" style="margin-top:10px;">
-        Note: This doesn’t predict outcomes or earnings—just checks alignment of goals, time, and preferences.
+        This is just a conversation tool to help with clarity — not a prediction of results.
       </p>
     `;
 
     questionCard.innerHTML = html;
 
-    document.getElementById("backBtn").onclick = () => { if (i > 0) { i--; render(); } };
+    document.getElementById("backBtn").onclick = () => {
+      if (i > 0) {
+        i--;
+        render();
+      }
+    };
+
     document.getElementById("resetBtn").onclick = () => {
       i = 0;
       for (const k in answers) delete answers[k];
       hideResults();
       render();
     };
+
     document.getElementById("nextBtn").onclick = () => {
       if (!saveAnswer(q)) return;
-      if (i < total - 1) {
+
+      // If Q5 changed and Q6 is no longer relevant, clear Q6 answer
+      if (q.id === "pastExperience") {
+        const q6 = questions.find(x => x.id === "pastExperienceDetail");
+        if (q6 && !shouldShowQuestion(q6)) {
+          delete answers["pastExperienceDetail"];
+        }
+      }
+
+      const currentVisible = visibleQuestions();
+      const currentTotal = currentVisible.length;
+
+      if (i < currentTotal - 1) {
         i++;
         render();
       } else {
@@ -240,25 +319,45 @@
   function saveAnswer(q) {
     if (q.type === "radio") {
       const sel = questionCard.querySelector(`input[name="${q.id}"]:checked`);
-      if (!sel) { alert("Please choose an option to continue."); return false; }
+      if (!sel) {
+        alert("Please choose an option to continue.");
+        return false;
+      }
       answers[q.id] = { value: sel.value, score: Number(sel.dataset.score || 0) };
       return true;
     }
 
-    const txt = (document.getElementById("textInput").value || "").trim();
-    if (!txt) { alert("Please type a short answer to continue."); return false; }
-    answers[q.id] = { value: txt, score: 0 };
-    return true;
+    if (q.type === "text") {
+      const txt = (document.getElementById("textInput").value || "").trim();
+      if (!txt && !q.optional) {
+        alert("Please type a short answer to continue.");
+        return false;
+      }
+      answers[q.id] = { value: txt || "", score: 0 };
+      return true;
+    }
+
+    return false;
   }
 
   function totalScore() {
     return Object.values(answers).reduce((sum, a) => sum + (a.score || 0), 0);
   }
 
+  function maxPossibleScoreForCurrentAnswers() {
+    // Based on currently visible questions, sum max score of each radio question
+    return visibleQuestions().reduce((sum, q) => {
+      if (q.type !== "radio") return sum;
+      const max = Math.max(...q.options.map(o => Number(o.score || 0)));
+      return sum + max;
+    }, 0);
+  }
+
   function buildPayload() {
     return {
       submittedAt: new Date().toISOString(),
       score: totalScore(),
+      maxPossibleScore: maxPossibleScoreForCurrentAnswers(),
       answers: Object.fromEntries(Object.entries(answers).map(([k, v]) => [k, v.value]))
     };
   }
@@ -270,28 +369,33 @@
     progressText.textContent = "Done";
 
     const score = totalScore();
+    const maxScore = Math.max(maxPossibleScoreForCurrentAnswers(), 1);
+    const ratio = score / maxScore;
+
     let label, pillClass, headline, nextStep;
 
-    if (score >= 20) {
-      label = "Green";
+    if (ratio >= 0.70) {
+      label = "Explore";
       pillClass = "pill green";
-      headline = "Strong alignment to explore";
-      nextStep = "If you want, the next step is a short overview of how the system works and what it looks like week-to-week.";
-    } else if (score >= 13) {
-      label = "Yellow";
+      headline = "This looks worth exploring";
+      nextStep = "There seems to be a good amount of alignment based on what you shared. A simple next step could be a short overview and a chance to ask questions.";
+    } else if (ratio >= 0.45) {
+      label = "Maybe";
       pillClass = "pill yellow";
-      headline = "Possible fit with a few questions";
-      nextStep = "It may be worth a look—especially if we can design a plan that fits your schedule and comfort level.";
+      headline = "Could be a fit with a little more conversation";
+      nextStep = "There may be a fit here, but it would help to talk through timing, expectations, and what kind of support would feel best.";
     } else {
-      label = "Red";
+      label = "Not right now";
       pillClass = "pill red";
-      headline = "Probably not a fit right now";
-      nextStep = "No problem. If timing changes later, we can revisit. For now, we can keep it simple and stay connected.";
+      headline = "Probably not the right timing right now";
+      nextStep = "That’s completely okay. This may not be the right season, and clarity is a win. You can always revisit later if your situation changes.";
     }
 
     const whyNow = answers.whyNow?.value || "(not answered)";
     const hours = answers.hours?.value || "(not answered)";
-    const style = answers.style?.value || "(not answered)";
+    const goals12mo = answers.goals12mo?.value || "(not answered)";
+    const readiness = answers.readiness?.value || "(not answered)";
+    const avoidFeel = answers.avoidFeel?.value || "(not answered)";
 
     resultCard.className = "card result";
     resultCard.innerHTML = `
@@ -305,7 +409,9 @@
       <div class="kvs">
         <div class="kv"><b>Your “why now”</b><div>${escapeHtml(whyNow)}</div></div>
         <div class="kv"><b>Time you said you have</b><div>${escapeHtml(hours)}</div></div>
-        <div class="kv"><b>Preferred build style</b><div>${escapeHtml(style)}</div></div>
+        <div class="kv"><b>What you want different in 12 months</b><div>${escapeHtml(goals12mo)}</div></div>
+        <div class="kv"><b>What you don’t want it to feel like</b><div>${escapeHtml(avoidFeel)}</div></div>
+        <div class="kv"><b>Where you are right now</b><div>${escapeHtml(readiness)}</div></div>
       </div>
 
       <div class="row" style="margin-top:14px;">
@@ -316,14 +422,14 @@
       <p class="muted" id="submitStatus" style="margin-top:10px;"></p>
 
       <p class="muted" style="margin-top:10px;">
-        Reminder: Results are directional and based only on your answers—this does not guarantee outcomes.
+        Reminder: This is directional and based only on the answers shared here.
       </p>
     `;
 
     document.getElementById("editBtn").onclick = () => {
       resultCard.style.display = "none";
       questionCard.style.display = "block";
-      i = questions.length - 1;
+      i = Math.max(visibleQuestions().length - 1, 0);
       render();
     };
 
@@ -351,16 +457,10 @@
   async function submitToSheet() {
     const payload = buildPayload();
 
-    // PASTE YOUR APPS SCRIPT WEB APP URL HERE (must end in /exec)
-    const ENDPOINT = "https://script.google.com/macros/s/ABC123.../exec";
-    
+    const ENDPOINT = "https://script.google.com/macros/s/AKfycbw7Pru3IIjn-DPPTxHkYrgGwvacJKWK0fWDmfmBYoquyae33onfHwPYmoZhM-xoslrfcA/exec";
+
     const statusEl = document.getElementById("submitStatus");
     statusEl.textContent = "Submitting...";
-
-    if (!ENDPOINT || ENDPOINT.includes("PASTE_YOUR_WEB_APP_URL_HERE")) {
-      statusEl.textContent = "Please add your Apps Script /exec URL in the code first.";
-      return;
-    }
 
     try {
       await fetch(ENDPOINT, {
@@ -369,8 +469,7 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
-
-      statusEl.textContent = "Submitted. Check your Google Sheet in a few seconds.";
+      statusEl.textContent = "Submitted. Check your Google Sheet (Responses tab) in a few seconds.";
     } catch (err) {
       statusEl.textContent = "Submission failed. Please try again.";
       console.error(err);
@@ -392,7 +491,5 @@
 
   render();
 </script>
-</body>
-</html>
 </body>
 </html>
